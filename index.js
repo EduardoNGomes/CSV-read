@@ -16,14 +16,15 @@ app.post('/test', upload.single('file'), async (req, res) => {
   // const response = await knex('products')
 
   const { file } = req
-  // fs.readFile(file, async (err, data) => {
-  //   if (err) {
-  //     console.log(err)
-  //     return
-  //   }
+  console.log(file)
+  fs.readFile(`./${file.path}`, async (err, data) => {
+    if (err) {
+      console.log(err)
+      return
+    }
 
-  //   console.log(await neatCsv(data))
-  // })
+    console.log(await neatCsv(data))
+  })
   return res.send()
 })
 

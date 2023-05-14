@@ -13,19 +13,43 @@ const upload = multer({
 })
 
 app.post('/test', upload.single('file'), async (req, res) => {
-  // const response = await knex('products')
-
+  const responseDB = await knex('products')
   const { file } = req
-  console.log(file)
+
+  const invalidEntries = []
+
   fs.readFile(`./${file.path}`, async (err, data) => {
     if (err) {
       console.log(err)
       return
     }
 
-    console.log(await neatCsv(data))
+    const resEntry = await neatCsv(data)
+
+    // code
+    // product_code
+    // new_price
+    for await (let itemEntry of resEntry) {
+      for (let itemDB of responseDB) {
+        // Object.values(JSON.parse(JSON.stringify(rows)));
+        // console.log(JSON.parse(JSON.stringify(itemDB)))
+        if (itemEntry.product_code == JSON.parse(JSON.stringify(itemDB)).code) {
+          // Validando se o novo preco e maior do que o preco de custo
+          if (itemEntry.new_price < itemDB.cost_price) {
+            invalidEntries.push({
+              ...itemEntry,
+              message: 'Novo preço menor do que o valor de custo do produto'
+            })
+          }
+        }
+      }
+    }
   })
-  return res.send()
+
+  setTimeout(() => {
+    console.log(invalidEntries)
+    return res.send('oi')
+  }, 2000)
 })
 
 app.listen(3333, () => {

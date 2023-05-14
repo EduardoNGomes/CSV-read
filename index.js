@@ -44,10 +44,21 @@ app.post('/test', upload.single('file'), async (req, res) => {
             })
           }
 
-          // Validar se aumento e maior do que 10%
           const itemWithTenPercent =
             itemDB.itemDB.cost_price + (itemDB.sales_price / 100) * 10
+          // Validar se aumento e maior do que 10%
           if (itemEntry.new_price > itemWithTenPercent) {
+            invalidEntries.push({
+              ...itemEntry,
+              message:
+                'Novo preço tem um aumento maior do que 10% do preço anterior'
+            })
+          }
+
+          const itemWithoutTenPercent =
+            itemDB.itemDB.cost_price - (itemDB.sales_price / 100) * 10
+          // Validar se aumento e maior do que 10%
+          if (itemEntry.new_price < itemWithTenPercent) {
             invalidEntries.push({
               ...itemEntry,
               message:
@@ -61,7 +72,7 @@ app.post('/test', upload.single('file'), async (req, res) => {
 
   setTimeout(() => {
     console.log(invalidEntries)
-    return res.send('oi')
+    return res.send()
   }, 2000)
 })
 

@@ -14,9 +14,23 @@ const upload = multer({
 
 app.post('/test', upload.single('file'), async (req, res) => {
   const responseDB = await knex('products')
+
+  const responseDBpacks = await knex
+    .select(
+      'products.name',
+      'products.code',
+      'products.cost_price',
+      'products.sales_price',
+      'packs.product_id',
+      'packs.qty'
+    )
+    .from('products')
+    .leftJoin('packs', 'products.code', '=', 'packs.pack_id')
+
   const { file } = req
 
   const invalidEntries = []
+  const updatedData = []
 
   fs.readFile(`./${file.path}`, async (err, data) => {
     if (err) {
@@ -30,11 +44,9 @@ app.post('/test', upload.single('file'), async (req, res) => {
     // sales_price
     // product_code
     // new_price
-
-    for await (let itemEntry of resEntry) {
+    for (let itemEntry of resEntry) {
       for (let itemDB of responseDB) {
-        // Object.values(JSON.parse(JSON.stringify(rows)));
-        // console.log(JSON.parse(JSON.stringify(itemDB)))
+        // Comparando codigo enviado pelo criando com codigo do produto do banco
         if (itemEntry.product_code == JSON.parse(JSON.stringify(itemDB)).code) {
           // Validando se o novo preco e maior do que o preco de custo
           if (itemEntry.new_price < itemDB.cost_price) {
@@ -42,38 +54,53 @@ app.post('/test', upload.single('file'), async (req, res) => {
               ...itemEntry,
               message: 'Novo preço menor do que o valor de custo do produto'
             })
+            break
           }
 
-          const itemWithTenPercent =
-            itemDB.itemDB.cost_price + (itemDB.sales_price / 100) * 10
           // Validar se aumento e maior do que 10%
+          const itemWithTenPercent =
+            itemDB.sales_price + (itemDB.sales_price / 100) * 10
+
+          console.log(itemWithTenPercent)
           if (itemEntry.new_price > itemWithTenPercent) {
             invalidEntries.push({
               ...itemEntry,
               message:
                 'Novo preço tem um aumento maior do que 10% do preço anterior'
             })
+            break
           }
 
-          const itemWithoutTenPercent =
-            itemDB.itemDB.cost_price - (itemDB.sales_price / 100) * 10
           // Validar se aumento e maior do que 10%
-          if (itemEntry.new_price < itemWithTenPercent) {
+          const itemWithoutTenPercent =
+            itemDB.sales_price - (itemDB.sales_price / 100) * 10
+          if (itemEntry.new_price < itemWithoutTenPercent) {
             invalidEntries.push({
               ...itemEntry,
               message:
-                'Novo preço tem um aumento maior do que 10% do preço anterior'
+                'Novo preço tem um aumento menor do que 10% do preço anterior'
             })
+            break
           }
+
+          updatedData.push({
+            code: itemDB.code,
+            name: itemDB.name,
+            current_price: itemDB.sales_price,
+            new_price: itemEntry.new_price
+          })
         }
       }
     }
   })
 
   setTimeout(() => {
-    console.log(invalidEntries)
+    console.log(updatedData, invalidEntries)
     return res.send()
-  }, 2000)
+  }, 500)
+  // console.log(updatedData, invalidEntries)
+
+  // return res.send(updatedData)
 })
 
 app.listen(3333, () => {

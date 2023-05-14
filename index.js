@@ -27,8 +27,10 @@ app.post('/test', upload.single('file'), async (req, res) => {
     const resEntry = await neatCsv(data)
 
     // code
+    // sales_price
     // product_code
     // new_price
+
     for await (let itemEntry of resEntry) {
       for (let itemDB of responseDB) {
         // Object.values(JSON.parse(JSON.stringify(rows)));
@@ -39,6 +41,17 @@ app.post('/test', upload.single('file'), async (req, res) => {
             invalidEntries.push({
               ...itemEntry,
               message: 'Novo preço menor do que o valor de custo do produto'
+            })
+          }
+
+          // Validar se aumento e maior do que 10%
+          const itemWithTenPercent =
+            itemDB.itemDB.cost_price + (itemDB.sales_price / 100) * 10
+          if (itemEntry.new_price > itemWithTenPercent) {
+            invalidEntries.push({
+              ...itemEntry,
+              message:
+                'Novo preço tem um aumento maior do que 10% do preço anterior'
             })
           }
         }

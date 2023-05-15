@@ -13,8 +13,6 @@ const upload = multer({
 })
 
 app.post('/test', upload.single('file'), async (req, res) => {
-  const responseDB = await knex('products')
-
   const responseDBpacks = await knex
     .select(
       'products.name',
@@ -27,11 +25,12 @@ app.post('/test', upload.single('file'), async (req, res) => {
     .from('products')
     .leftJoin('packs', 'products.code', '=', 'packs.pack_id')
 
+  const responseDB = JSON.parse(JSON.stringify(responseDBpacks))
+  const resEntry = []
   const { file } = req
 
   const invalidEntries = []
   const updatedData = []
-  const resEntry = []
 
   const csvPath = new URL(`./${file.path}`, import.meta.url)
 
@@ -51,7 +50,7 @@ app.post('/test', upload.single('file'), async (req, res) => {
   for await (let itemEntry of resEntry) {
     for await (let itemDB of responseDB) {
       // Comparando codigo enviado pelo criando com codigo do produto do banco
-      if (itemEntry.product_code == JSON.parse(JSON.stringify(itemDB)).code) {
+      if (itemEntry.product_code == itemDB.code) {
         // Validando se o novo preco e maior do que o preco de custo
         if (itemEntry.new_price < itemDB.cost_price) {
           invalidEntries.push({
@@ -85,6 +84,12 @@ app.post('/test', upload.single('file'), async (req, res) => {
           })
           break
         }
+        if (itemDB.product_id !== null) {
+        } else {
+          // await knex('products').update({
+          //   sales_price: itemEntry.new_price
+          // }).where({code: itemEntry.product_code})
+        }
 
         updatedData.push({
           code: itemDB.code,
@@ -96,8 +101,7 @@ app.post('/test', upload.single('file'), async (req, res) => {
     }
   }
 
-  console.log(updatedData)
-  return res.send(resEntry)
+  return res.send(responseDB)
 })
 
 app.listen(3333, () => {

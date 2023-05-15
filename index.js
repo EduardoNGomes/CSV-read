@@ -31,6 +31,7 @@ app.post('/test', upload.single('file'), async (req, res) => {
 
   const invalidEntries = []
   const updatedData = []
+  const resEntry = []
 
   fs.readFile(`./${file.path}`, async (err, data) => {
     if (err) {
@@ -38,14 +39,16 @@ app.post('/test', upload.single('file'), async (req, res) => {
       return
     }
 
-    const resEntry = await neatCsv(data)
+    const resEntryData = await neatCsv(data)
+    resEntry.push(resEntryData)
 
     // code
     // sales_price
     // product_code
     // new_price
-    for (let itemEntry of resEntry) {
-      for (let itemDB of responseDB) {
+
+    for await (let itemEntry of resEntry) {
+      for await (let itemDB of responseDB) {
         // Comparando codigo enviado pelo criando com codigo do produto do banco
         if (itemEntry.product_code == JSON.parse(JSON.stringify(itemDB)).code) {
           // Validando se o novo preco e maior do que o preco de custo
@@ -61,7 +64,6 @@ app.post('/test', upload.single('file'), async (req, res) => {
           const itemWithTenPercent =
             itemDB.sales_price + (itemDB.sales_price / 100) * 10
 
-          console.log(itemWithTenPercent)
           if (itemEntry.new_price > itemWithTenPercent) {
             invalidEntries.push({
               ...itemEntry,
@@ -93,14 +95,12 @@ app.post('/test', upload.single('file'), async (req, res) => {
       }
     }
   })
-
   setTimeout(() => {
     console.log(updatedData, invalidEntries)
     return res.send()
   }, 500)
-  // console.log(updatedData, invalidEntries)
 
-  // return res.send(updatedData)
+  return res.send(resEntry)
 })
 
 app.listen(3333, () => {
